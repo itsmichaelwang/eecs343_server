@@ -15,11 +15,11 @@
  *  @var argument Argument to be passed to the function.
  */
 
-#define MAX_THREADS 1
+#define MAX_THREADS 5
 #define STANDBY_SIZE 10
 
 
-// function pointer to parse request/
+// function pointer to two different functions (parse_request or process request)
 typedef struct {
     void (*function)(void *);
     void *argument;
@@ -33,8 +33,8 @@ struct pool_t {
   pool_task_t *queue;
   int thread_count;
   int task_queue_size_limit;
-  int queue_start;
-  int queue_end;
+  int head;
+  int tail;
 };
 
 static void *thread_do_work(void *pool);
@@ -58,25 +58,42 @@ pool_t *pool_create(int queue_size, int num_threads)
         pthread_create(&(threadpool->threads[i]), NULL, thread_do_work, (void*) threadpool);
     }
     //threadpool queue of many pool tasks
-    threadpool->queue = (pool_task_t*)malloc(sizeof(pool_task_t) * (queue_size));
+    threadpool->queue = (pool_task_t*)malloc(sizeof(pool_task_t) * (queue_size + 1));
 
     //thread count as the number of threads
     threadpool->thread_count = num_threads;
     threadpool->task_queue_size_limit = queue_size;
 
-    threadpool->queue_start = 0;
-    threadpool->queue_end = 0;
+    threadpool->head = 0;
+    threadpool->tail = 0;
     return threadpool;
 }
 
 
 /*
  * Add a task to the threadpool
- *
+ * Task contains both pointers to the process_request and parse_request
  */
+
+
 int pool_add_task(pool_t *pool, void (*function)(void *), void *argument)
 {
     int err = 0;
+    int end = pool->tail;
+
+    pthread_mutex_lock(&pool->lock);
+    //Append the task's function(parse or process request and the arguments
+    pool->queue[end].function = function;
+    pool->queue[end].argument = argument;
+
+    end = (end + 1) % (pool->task_queue_size_limit + 1);
+
+    /* Signal waiting threads. */
+    pthread_cond_signal(&pool->notify);
+    /* pthread_cond_signal wakes up/notifies another thread that is is waiting on another condition
+    variable It should be called after mutex is locked, and must unlock mutex in order for pthread_cond_wait() routine to complete.*/
+
+    pthread_mutex_unlock(&pool->lock);
 
     return err;
 }
