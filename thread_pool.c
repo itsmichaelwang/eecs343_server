@@ -62,6 +62,7 @@ pool_t *pool_create(int queue_size, int num_threads)
 
     //thread count as the number of threads
     threadpool->thread_count = num_threads;
+    threadpool->task_queue_size_limit = queue_size;
 
     threadpool->queue_start = 0;
     threadpool->queue_end = 0;
