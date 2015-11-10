@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include "thread_pool.h"
 
@@ -17,6 +18,8 @@
 #define MAX_THREADS 1
 #define STANDBY_SIZE 10
 
+
+// function pointer to parse request/
 typedef struct {
     void (*function)(void *);
     void *argument;
@@ -30,10 +33,11 @@ struct pool_t {
   pool_task_t *queue;
   int thread_count;
   int task_queue_size_limit;
+  int queue_start;
+  int queue_end;
 };
 
 static void *thread_do_work(void *pool);
-
 
 /*
  * Create a threadpool, initialize variables, etc
@@ -41,7 +45,27 @@ static void *thread_do_work(void *pool);
  */
 pool_t *pool_create(int queue_size, int num_threads)
 {
-    return NULL;
+
+    // Initialize all of the elements of the pool_t struct
+    pool_t* threadpool = (pool_t*) malloc(sizeof(pool_t));
+    pthread_mutex_init(&(threadpool->lock), NULL);
+    pthread_cond_init(&(threadpool->notify), NULL);
+    threadpool->threads = (pthread_t *) malloc(sizeof(pthread_t) * num_threads);
+    // int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+    //void *(*start_routine) (void *), void *arg);
+    int i;
+    for(i = 0; i < num_threads; i++) {
+        pthread_create(&(threadpool->threads[i]), NULL, thread_do_work, (void*) threadpool);
+    }
+    //threadpool queue of many pool tasks
+    threadpool->queue = (pool_task_t*)malloc(sizeof(pool_task_t) * (queue_size));
+
+    //thread count as the number of threads
+    threadpool->thread_count = num_threads;
+
+    threadpool->queue_start = 0;
+    threadpool->queue_end = 0;
+    return threadpool;
 }
 
 
