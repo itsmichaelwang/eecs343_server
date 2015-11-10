@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <semaphore.h>
 
 #include "util.h"
 #include "seats.h"
@@ -110,6 +111,7 @@ void process_request(void* args)
 {
     int connfd = ((struct args_t*) args)->connfd;
     struct request* req = ((struct args_t*) args)->req;
+    sem_t* semaphore_ptr = ((struct args_t*) args)->semaphore;
 
     char *ok_response = "HTTP/1.0 200 OK\r\n"\
                            "Content-type: text/html\r\n\r\n";
@@ -176,8 +178,14 @@ void process_request(void* args)
         }
     }
 
-    printf("%s\n", req->resource);
+    // printf("%s\n", req->resource);
     free(args);
+    int* sem_state = NULL;
+    int res = sem_getvalue(semaphore_ptr, sem_state);
+    printf("Semaphore state query status is %d and semaphore state is %d\n", res, (*sem_state));
+    printf("Semaphore error is %s\n", strerror(errno));
+    sem_post(semaphore_ptr);
+
 }
 
 int get_line(int fd, char *buf, int size)
@@ -240,6 +248,16 @@ int writenbytes(int fd,char *str,int size)
     int totalwritten =0;
     while ((rc = write(fd,str+totalwritten,size-totalwritten)) > 0)
         totalwritten += rc;
+
+    printf("==========\n");
+    printf("fd: %d\n", fd);
+    printf("str:%s\n", str);
+    printf("rc:%d\n", rc);
+    printf("error %s\n", strerror(errno));
+    printf("size: %d\n", size);
+    printf("totalwritten: %d\n", totalwritten);
+    printf("==========\n");
+    printf("\n");
 
     if (rc < 0)
         return -1;
