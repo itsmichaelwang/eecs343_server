@@ -77,7 +77,7 @@ pool_t *pool_create(int queue_size, int num_threads)
 int pool_add_task(pool_t *pool, void (*function)(void *), void *argument)
 {
     int err = 0;
-        
+
     return err;
 }
 
@@ -90,7 +90,7 @@ int pool_add_task(pool_t *pool, void (*function)(void *), void *argument)
 int pool_destroy(pool_t *pool)
 {
     int err = 0;
- 
+
     return err;
 }
 
@@ -101,10 +101,10 @@ int pool_destroy(pool_t *pool)
  *
  */
 static void *thread_do_work(void *pool)
-{ 
+{
 
     while(1) {
-        
+
     }
 
     pthread_exit(NULL);
