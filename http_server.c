@@ -20,6 +20,7 @@
 #define FILENAMESIZE 100
 
 void shutdown_server(int);
+void handle_request(int*);     // HELPER FUNCTION
 
 int listenfd;
 
@@ -28,7 +29,6 @@ int listenfd;
 int main(int argc,char *argv[])
 {
     int flag, num_seats = 20;
-    int connfd = 0;
     struct sockaddr_in serv_addr;
 
     char send_buffer[BUFSIZE];
@@ -85,7 +85,8 @@ int main(int argc,char *argv[])
     // This while loop "forever", handling incoming connections
     while(1)
     {
-        connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
+        int* connfd = malloc(sizeof(int));
+        *connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
 
         /*********************************************************************
             You should not need to modify any of the code above this comment.
@@ -96,25 +97,23 @@ int main(int argc,char *argv[])
             to other locations when you make your server multithreaded.
         *********************************************************************/
 
-        // parse_request fills in the req struct object
-        struct request req;
-        parse_request(connfd, &req);
-
-        // initialize and populate the args struct
-        struct args_t args;
-
-        args.connfd = connfd;
-        args.req = &req;
-
-        // handle pthreads
+        // create a thread to handle the request
         pthread_t thread;
-        pthread_create(&thread, NULL, &process_request, ((void*) &args));
-
-        // don't close the fd until we're done writing to it
-        pthread_join(thread, NULL);
-        close(connfd);
+        pthread_create(&thread, NULL, &handle_request, connfd);
 
     }
+}
+
+void handle_request(int* connfd)
+{
+    // parse_request fills in the req struct object
+    struct request req;
+    parse_request(*connfd, &req);
+
+    process_request(*connfd, &req);
+
+    close(*connfd);
+    free(connfd);
 }
 
 void shutdown_server(int signo){

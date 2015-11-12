@@ -19,9 +19,10 @@
 
 int writenbytes(int,char *,int);
 int readnbytes(int,char *,int);
-int get_line(int, char*,int);
+int get_line(int,char*,int);
 
 int parse_int_arg(char* filename, char* arg);
+
 
 void parse_request(int connfd, struct request* req)
 {
@@ -106,15 +107,8 @@ void parse_request(int connfd, struct request* req)
     req->customer_priority = parse_int_arg(file, "priority=");
 }
 
-void process_request(void* args)
+void process_request(int connfd, struct request* req)
 {
-    printf("Entering process_request\n");
-
-    struct args_t* args_t = (struct args_t*) args;
-
-    int connfd = args_t->connfd;
-    struct request* req = args_t->req;
-
     char *ok_response = "HTTP/1.0 200 OK\r\n"\
                            "Content-type: text/html\r\n\r\n";
 
@@ -180,8 +174,7 @@ void process_request(void* args)
         }
     }
 
-    // free(args->req);
-
+    // free(req); ?
 }
 
 int get_line(int fd, char *buf, int size)
@@ -245,15 +238,16 @@ int writenbytes(int fd,char *str,int size)
     while ((rc = write(fd,str+totalwritten,size-totalwritten)) > 0)
         totalwritten += rc;
 
-    printf("==========\n");
-    printf("fd: %d\n", fd);
-    printf("str:%s\n", str);
-    printf("rc:%d\n", rc);
-    printf("error %s\n", strerror(errno));
-    printf("size: %d\n", size);
-    printf("totalwritten: %d\n", totalwritten);
-    printf("==========\n");
-    printf("\n");
+    // DEBUG BLOCK
+    // printf("==========\n");
+    // printf("fd: %d\n", fd);
+    // printf("str:%s\n", str);
+    // printf("rc:%d\n", rc);
+    // printf("error %s\n", strerror(errno));
+    // printf("size: %d\n", size);
+    // printf("totalwritten: %d\n", totalwritten);
+    // printf("==========\n");
+    // printf("\n");
 
     if (rc < 0)
         return -1;
