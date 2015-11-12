@@ -12,7 +12,6 @@ struct request{
 struct args_t {
   int connfd;
   struct request* req;
-  sem_t* semaphore;
 };
 
 void parse_request(int, struct request*);

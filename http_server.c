@@ -11,7 +11,6 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <pthread.h>
-#include <semaphore.h>
 
 #include "thread_pool.h"
 #include "seats.h"
@@ -23,7 +22,6 @@
 void shutdown_server(int);
 
 int listenfd;
-sem_t semaphore;
 
 // TODO: Declare your threadpool!
 
@@ -103,26 +101,19 @@ int main(int argc,char *argv[])
         parse_request(connfd, &req);
 
         // initialize and populate the args struct
-        struct args_t* args = malloc(sizeof(struct args_t));
-        sem_init(&semaphore, 0, 1);
+        struct args_t args;
 
-        args->connfd = connfd;
-        args->req = &req;
-        args->semaphore = &semaphore;
-
-        sem_wait(&semaphore);
+        args.connfd = connfd;
+        args.req = &req;
 
         // handle pthreads
         pthread_t thread;
-        pthread_create(&thread, NULL, &process_request, (void*) args);
+        pthread_create(&thread, NULL, &process_request, ((void*) &args));
 
         // don't close the fd until we're done writing to it
-        printf("Waiting on semaphore to be available\n");
-        int res = sem_wait(&semaphore);
-        printf("%d\n", res);
-        printf("Closing connection\n");
+        pthread_join(thread, NULL);
         close(connfd);
-        sem_destroy(&semaphore);
+
     }
 }
 

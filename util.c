@@ -10,7 +10,6 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <errno.h>
-#include <semaphore.h>
 
 #include "util.h"
 #include "seats.h"
@@ -109,9 +108,12 @@ void parse_request(int connfd, struct request* req)
 
 void process_request(void* args)
 {
-    int connfd = ((struct args_t*) args)->connfd;
-    struct request* req = ((struct args_t*) args)->req;
-    sem_t* semaphore_ptr = ((struct args_t*) args)->semaphore;
+    printf("Entering process_request\n");
+
+    struct args_t* args_t = (struct args_t*) args;
+
+    int connfd = args_t->connfd;
+    struct request* req = args_t->req;
 
     char *ok_response = "HTTP/1.0 200 OK\r\n"\
                            "Content-type: text/html\r\n\r\n";
@@ -178,13 +180,7 @@ void process_request(void* args)
         }
     }
 
-    // printf("%s\n", req->resource);
-    free(args);
-    int* sem_state = NULL;
-    int res = sem_getvalue(semaphore_ptr, sem_state);
-    printf("Semaphore state query status is %d and semaphore state is %d\n", res, (*sem_state));
-    printf("Semaphore error is %s\n", strerror(errno));
-    sem_post(semaphore_ptr);
+    // free(args->req);
 
 }
 
