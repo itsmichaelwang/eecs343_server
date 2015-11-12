@@ -136,9 +136,22 @@ int pool_destroy(pool_t *pool)
  */
 static void *thread_do_work(void *pool)
 {
-
+    pool_t* threadpool = (pool_t*) pool;
     while(1) {
+        pthread_mutex_lock(&threadpool->lock);
 
+        //if queue is not empty, find the task, increment the head, and then unlock the mutex
+        if(threadpool->head != threadpool->tail) {
+            pool_task_t task = threadpool->queue[threadpool->head];
+            threadpool->head = (threadpool->head + 1) % (threadpool->task_queue_size_limit + 1);
+            pthread_mutex_unlock(&threadpool->lock);
+            (task.function)(task.argument);
+        }
+
+        //if the queue is empty, just release the mutex
+        if(threadpool->head == threadpool->tail) {
+            pthread_mutex_unlock(&threadpool->lock);
+        }
     }
 
     pthread_exit(NULL);
