@@ -85,8 +85,11 @@ int pool_add_task(pool_t *pool, void (*function)(void *), void *argument)
     //Append the task's function(parse or process request and the arguments
     pool->queue[end].function = function;
     pool->queue[end].argument = argument;
+    printf("task queue size limit%d", pool->task_queue_size_limit);
 
+    // Increment tail index after adding the function so the task added at the end cannot be accessed by other threads
     end = (end + 1) % (pool->task_queue_size_limit + 1);
+    printf("End%d", end);
 
     /* Signal waiting threads. */
     pthread_cond_signal(&pool->notify);
@@ -107,6 +110,20 @@ int pool_add_task(pool_t *pool, void (*function)(void *), void *argument)
 int pool_destroy(pool_t *pool)
 {
     int err = 0;
+    int i = 0;
+
+    //join each thread when pool gets destroyed
+    for(i = 0; i < pool->thread_count; i++) {
+        pthread_join(pool->threads[i], NULL);
+    }
+
+    //destroy mutex and the conditon variable
+    pthread_mutex_destroy(&pool->lock);
+    pthread_cond_destroy(&pool->notify);
+
+    free(pool->queue);
+    free(pool->threads);
+    free(pool);
 
     return err;
 }
@@ -119,9 +136,22 @@ int pool_destroy(pool_t *pool)
  */
 static void *thread_do_work(void *pool)
 {
-
+    pool_t* threadpool = (pool_t*) pool;
     while(1) {
+        pthread_mutex_lock(&threadpool->lock);
 
+        //if queue is not empty, find the task, increment the head, and then unlock the mutex
+        if(threadpool->head != threadpool->tail) {
+            pool_task_t task = threadpool->queue[threadpool->head];
+            threadpool->head = (threadpool->head + 1) % (threadpool->task_queue_size_limit + 1);
+            pthread_mutex_unlock(&threadpool->lock);
+            (task.function)(task.argument);
+        }
+
+        //if the queue is empty, just release the mutex
+        if(threadpool->head == threadpool->tail) {
+            pthread_mutex_unlock(&threadpool->lock);
+        }
     }
 
     pthread_exit(NULL);
