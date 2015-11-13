@@ -20,7 +20,7 @@
 #define FILENAMESIZE 100
 
 void shutdown_server(int);
-void handle_request(int*);     // HELPER FUNCTION
+void* handle_request(void*);     // HELPER FUNCTION
 
 int listenfd;
 
@@ -104,16 +104,19 @@ int main(int argc,char *argv[])
     }
 }
 
-void handle_request(int* connfd)
+void* handle_request(void* connfd)
 {
     // parse_request fills in the req struct object
     struct request req;
-    parse_request(*connfd, &req);
+    parse_request(*(int*)connfd, &req);
 
-    process_request(*connfd, &req);
+    process_request(*(int*)connfd, &req);
 
-    close(*connfd);
+    close(*(int*)connfd);
     free(connfd);
+
+    return (void*) 200;
+    
 }
 
 void shutdown_server(int signo){
