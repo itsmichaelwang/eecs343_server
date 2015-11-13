@@ -30,7 +30,7 @@ int main(int argc,char *argv[])
 {
     int flag, num_seats = 20;
     struct sockaddr_in serv_addr;
-
+    int connfd = 0;
     char send_buffer[BUFSIZE];
 
     listenfd = 0;
@@ -85,8 +85,7 @@ int main(int argc,char *argv[])
     // This while loop "forever", handling incoming connections
     while(1)
     {
-        int* connfd = malloc(sizeof(int));
-        *connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
+        connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
 
         /*********************************************************************
             You should not need to modify any of the code above this comment.
@@ -99,24 +98,24 @@ int main(int argc,char *argv[])
 
         // create a thread to handle the request
         pthread_t thread;
-        pthread_create(&thread, NULL, &handle_request, connfd);
+        pthread_create(&thread, NULL, &handle_request, (void*)connfd);
 
     }
 }
 
-void* handle_request(void* connfd)
+void* handle_request(void* connfd_ptr)
 {
+    int connfd = (int) connfd_ptr;
+
     // parse_request fills in the req struct object
     struct request req;
-    parse_request(*(int*)connfd, &req);
+    parse_request(connfd, &req);
 
-    process_request(*(int*)connfd, &req);
+    process_request(connfd, &req);
 
-    close(*(int*)connfd);
-    free(connfd);
+    close(connfd);
+    return (void*) 0;
 
-    return (void*) 200;
-    
 }
 
 void shutdown_server(int signo){
