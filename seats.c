@@ -162,7 +162,10 @@ void unload_seats()
     {
         seat_t* temp = curr;
         curr = curr->next;
+
+        pthread_mutex_destroy(temp->lock);
         free(temp->lock);
+
         free(temp);
     }
 }

@@ -25,6 +25,7 @@ void* handle_request(void*);     // HELPER FUNCTION
 int listenfd;
 
 // TODO: Declare your threadpool!
+struct pool_t;
 
 int main(int argc,char *argv[])
 {
