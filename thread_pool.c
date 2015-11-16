@@ -18,55 +18,63 @@
 #define MAX_THREADS 5
 #define STANDBY_SIZE 10
 
-
 // function pointer to two different functions (parse_request or process request)
-typedef struct {
-    void (*function)(void *);
-    void *argument;
-} pool_task_t;
-
+struct pool_task_t {
+    void (*function)(void*);
+    void* argument;
+};
 
 struct pool_t {
   pthread_mutex_t lock;
   pthread_cond_t notify;
-  pthread_t *threads;
-  pool_task_t *queue;
+  pthread_t* threads;
+  struct pool_task_t* queue;
   int thread_count;
   int task_queue_size_limit;
   int head;
   int tail;
 };
 
-static void *thread_do_work(void *pool);
+// Private Method Declarations
+static void* thread_do_work(void* pool);
 
 /*
  * Create a threadpool, initialize variables, etc
  *
  */
-pool_t *pool_create(int queue_size, int num_threads)
+struct pool_t* pool_create(int queue_size, int num_threads)
 {
+    int i;
+    struct pool_t* threadpool = malloc(sizeof(struct pool_t));
 
-    // Initialize all of the elements of the pool_t struct
-    pool_t* threadpool = (pool_t*) malloc(sizeof(pool_t));
+    // TODO: what is this as well
     pthread_mutex_init(&(threadpool->lock), NULL);
     pthread_cond_init(&(threadpool->notify), NULL);
-    threadpool->threads = (pthread_t *) malloc(sizeof(pthread_t) * num_threads);
+
+    // TODO: ask Ted if we can remove this
     // int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-    //void *(*start_routine) (void *), void *arg);
-    int i;
-    for(i = 0; i < num_threads; i++) {
+    // void *(*start_routine) (void *), void *arg);
+
+    // have one queue for the thread pool...
+    threadpool->threads = malloc(sizeof(pthread_t) * num_threads);
+    for (i = 0; i < num_threads; i++)
+    {
         pthread_create(&(threadpool->threads[i]), NULL, thread_do_work, (void*) threadpool);
     }
-    //threadpool queue of many pool tasks
-    threadpool->queue = (pool_task_t*)malloc(sizeof(pool_task_t) * (queue_size + 1));
 
-    //thread count as the number of threads
+    // ...and another queue for tasks
+    threadpool->queue = malloc( sizeof(struct pool_task_t) * (queue_size + 1) );
+
+    // keep track of the number of threads available and task queue size
     threadpool->thread_count = num_threads;
     threadpool->task_queue_size_limit = queue_size;
 
+    // TODO: wtf is this for
     threadpool->head = 0;
     threadpool->tail = 0;
+
     return threadpool;
+
 }
 
 
@@ -74,9 +82,7 @@ pool_t *pool_create(int queue_size, int num_threads)
  * Add a task to the threadpool
  * Task contains both pointers to the process_request and parse_request
  */
-
-
-int pool_add_task(pool_t *pool, void (*function)(void *), void *argument)
+int pool_add_task(struct pool_t* pool, void (*function)(void*), void* argument)
 {
     int err = 0;
     int end = pool->tail;
@@ -99,6 +105,7 @@ int pool_add_task(pool_t *pool, void (*function)(void *), void *argument)
     pthread_mutex_unlock(&pool->lock);
 
     return err;
+
 }
 
 
@@ -107,7 +114,7 @@ int pool_add_task(pool_t *pool, void (*function)(void *), void *argument)
  * Destroy the threadpool, free all memory, destroy treads, etc
  *
  */
-int pool_destroy(pool_t *pool)
+int pool_destroy(struct pool_t* pool)
 {
     int err = 0;
     int i = 0;
@@ -126,23 +133,23 @@ int pool_destroy(pool_t *pool)
     free(pool);
 
     return err;
-}
 
+}
 
 
 /*
  * Work loop for threads. Should be passed into the pthread_create() method.
  *
  */
-static void *thread_do_work(void *pool)
+static void* thread_do_work(void* pool)
 {
-    pool_t* threadpool = (pool_t*) pool;
+    struct pool_t* threadpool = (struct pool_t*) pool;
     while(1) {
         pthread_mutex_lock(&threadpool->lock);
 
         //if queue is not empty, find the task, increment the head, and then unlock the mutex
         if(threadpool->head != threadpool->tail) {
-            pool_task_t task = threadpool->queue[threadpool->head];
+            struct pool_task_t task = threadpool->queue[threadpool->head];
             threadpool->head = (threadpool->head + 1) % (threadpool->task_queue_size_limit + 1);
             pthread_mutex_unlock(&threadpool->lock);
             (task.function)(task.argument);

@@ -25,7 +25,7 @@ void* handle_request(void*);     // HELPER FUNCTION
 int listenfd;
 
 // TODO: Declare your threadpool!
-struct pool_t;
+struct pool_t* pool;
 
 int main(int argc,char *argv[])
 {
@@ -119,7 +119,8 @@ void* handle_request(void* connfd_ptr)
 
 }
 
-void shutdown_server(int signo){
+void shutdown_server(int signo)
+{
     printf("Shutting down the server...\n");
 
     // TODO: Teardown your threadpool
