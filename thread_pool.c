@@ -44,6 +44,9 @@ static void* thread_do_work(void* pool);
  */
 struct pool_t* pool_create(int queue_size, int num_threads)
 {
+    if(thread_count > MAX_THREADS) {
+        printf("Thread count exceeds MAX_THREADS");
+    }
     int i;
     struct pool_t* threadpool = malloc(sizeof(struct pool_t));
 
@@ -52,10 +55,7 @@ struct pool_t* pool_create(int queue_size, int num_threads)
     pthread_cond_init(&(threadpool->notify), NULL);
 
     // TODO: ask Ted if we can remove this
-    // int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-    // void *(*start_routine) (void *), void *arg);
 
-    // have one queue for the thread pool...
     threadpool->threads = malloc(sizeof(pthread_t) * num_threads);
     for (i = 0; i < num_threads; i++)
     {
@@ -91,11 +91,9 @@ int pool_add_task(struct pool_t* pool, void (*function)(void*), void* argument)
     //Append the task's function(parse or process request and the arguments
     pool->queue[end].function = function;
     pool->queue[end].argument = argument;
-    printf("task queue size limit%d", pool->task_queue_size_limit);
 
     // Increment tail index after adding the function so the task added at the end cannot be accessed by other threads
     end = (end + 1) % (pool->task_queue_size_limit + 1);
-    printf("End%d", end);
 
     /* Signal waiting threads. */
     pthread_cond_signal(&pool->notify);
