@@ -1,0 +1,18 @@
+EECS 343 Project 3
+Ted Wu (ttw349)
+Michael Wang (mzw462)
+
+The thread pool has a struct with lock, notify, threads, the queue which is a circular buffer with a head and a tail. 
+Thread pool also contains the number of threads and the size limit.
+Pool create function is pretty straightforward because it intializes the mutex and the condition variables using pthread_mutex_init() and pthread_cond_init()
+Also, the pool create function 
+
+Adding task to the pool first checks whether the queue is full. If the queue is full, then there can't be any more tasks that can be added to the queue and it fails. The way it checks for whether there is any space in the queue is through the use of queue_head and queue_tail variable. The queue is a circular queue, so if head is equal to tail, it indicates that the queue is empty. Using a circular task queue is to ensure that each threads do not access each other wrongly.
+
+Destroying the pool signals all the threads to quit and then frees the memory allocated by the pool.
+
+A function that tries to grab a task from the queue was implemented, mainly because there are times that there are jobs in the queue and spontaneous waking up of threads can be utilized to clear the jobs in the queue. 
+
+
+
+Appropriate changes had to be made in each function to switch from linked list traversal algorithms to simply array algorithm. Since the indices of the array is passed as arguments to the function, it was easy to rewrite the functions to make use of this. Each seat also has a mutex lock on it to make sure no critical sections of each function is being executed by multiple threads at once. The critical sections of each function was where the state of the seat was being changedmainly, since if two customers try to grab the same seat before the other updates its status, then two customers will be assigned to the same seat. To prevent this problem, locks were placed between any code that dealt with changing the state of the seats.
